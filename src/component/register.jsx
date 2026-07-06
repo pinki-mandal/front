@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 
-const API_BASE_URL = "https://loginbackend-5-5c7y.onrender.com/api"
+const API_BASE_URL = "https://auth-login-1-g2uf.onrender.com/api"
 
 function Register() {
   const [mode, setMode] = useState('login')
@@ -131,19 +131,27 @@ function Register() {
     setMessage('')
 
     try {
-      const endpoint = pendingOtp?.type === 'phone-otp' ? `${API_BASE_URL}/auth/verify-login-otp` : `${API_BASE_URL}/auth/verify-login-otp`
+      const endpoint = pendingOtp?.type === 'phone-otp' ? `${API_BASE_URL}/auth/verifyLoginOtp` : `${API_BASE_URL}/auth/verifyLoginOtp`
       const payload = pendingOtp?.type === 'phone-otp'
         ? { phone: pendingOtp.phone, otp: form.otp }
         : { email: pendingOtp.email, otp: form.otp }
-
+      console.log("Payload:", payload);
       const response = await axios.post(endpoint, payload)
+      console.log("Payload:", payload);
       setUser(response.data.user)
       localStorage.setItem('accessToken', response.data.accessToken)
       localStorage.setItem('refreshToken', response.data.refreshToken)
       setMessage('OTP verified successfully')
       setPendingOtp(null)
-    } catch (err) {
-      setError(err.response?.data?.message || 'OTP verification failed')
+      
+    // } catch (err) {
+      // setError(err.response?.data?.message || 'OTP verification failed')
+      console.log("Verify OTP API Hit");
+     } catch (err) {
+  console.log(err.response?.data);
+  setError(err.response?.data?.message || "OTP verification failed");
+// }
+      // console.log(req.body);
     } finally {
       setLoading(false)
     }
@@ -178,8 +186,14 @@ function Register() {
       })
       setMessage(response.data.message)
       setPendingOtp(null)
-    } catch (err) {
-      setError(err.response?.data?.message || 'Password reset failed')
+    // } catch (err) {
+    }
+
+      catch (err) {
+  console.log(err.response?.data);
+  setError(err.response?.data?.message || "OTP verification failed");
+// }
+      // setError(err.response?.data?.message || 'Password reset failed')
     } finally {
       setLoading(false)
     }
@@ -367,5 +381,7 @@ function Register() {
     </div>
   )
 }
+
+export default Register
 
 export default Register
