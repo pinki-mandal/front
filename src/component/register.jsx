@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
 
-const API_BASE_URL = "https://auth-login-1-g2uf.onrender.com/api"
+const API_BASE_URL = "http://localhost:5000/api"
 
 function Register() {
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState('register')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -18,6 +19,8 @@ function Register() {
     otp: '',
     newPassword: '',
   })
+
+  const navigate = useNavigate()
 
   const updateField = (event) => {
     const { name, value } = event.target
@@ -60,6 +63,7 @@ function Register() {
       })
       setMessage(response.data.message)
       setPendingOtp(null)
+      setMode("login");
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to complete registration')
     } finally {
@@ -86,6 +90,8 @@ function Register() {
         localStorage.setItem('accessToken', response.data.accessToken)
         localStorage.setItem('refreshToken', response.data.refreshToken)
         setMessage('Signed in successfully')
+
+        navigate("/dashboard")
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed')
@@ -103,6 +109,7 @@ function Register() {
       setPendingOtp({ type: 'email-otp', email: form.email })
       setMessage(response.data.message)
     } catch (err) {
+      console.log(err);
       setError(err.response?.data?.message || 'Unable to send OTP')
     } finally {
       setLoading(false)
@@ -114,7 +121,7 @@ function Register() {
     setError('')
     setMessage('')
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login/phone-otp`, { phone: form.phone })
+      const response = await axios.post(`${API_BASE_URL}/auth/phone-otp`, { phone: form.phone })
       setPendingOtp({ type: 'phone-otp', phone: form.phone })
       setMessage(response.data.message)
     } catch (err) {
@@ -131,7 +138,7 @@ function Register() {
     setMessage('')
 
     try {
-      const endpoint = pendingOtp?.type === 'phone-otp' ? `${API_BASE_URL}/auth/verifyLoginOtp` : `${API_BASE_URL}/auth/verifyLoginOtp`
+      const endpoint = pendingOtp?.type === 'phone-otp' ? `${API_BASE_URL}/auth/verify-phone-otp` : `${API_BASE_URL}/auth/verify-otp`
       const payload = pendingOtp?.type === 'phone-otp'
         ? { phone: pendingOtp.phone, otp: form.otp }
         : { email: pendingOtp.email, otp: form.otp }
@@ -234,23 +241,22 @@ function Register() {
     `rounded-full px-4 py-2 text-sm font-semibold transition ${mode === tabName ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-800/70 text-slate-300 hover:bg-slate-700'}`
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.3),_transparent_35%),linear-gradient(135deg,_#020617_0%,_#111827_100%)] px-4 py-12 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row">
-        <div className="w-full rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl backdrop-blur-xl lg:w-[45%]">
-          <div className="mb-8 space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-indigo-300">Authentication Suite</p>
-            <h1 className="text-4xl font-semibold sm:text-5xl">Secure sign-in and registration flows</h1>
-            <p className="max-w-xl text-sm text-slate-400 sm:text-base">
-              This UI covers registration, OTP verification, password login, email and phone OTP login, forgot password, and token-based sessions.
-            </p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-lg px-4">
+    <div className="w-full rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl backdrop-blur-xl">
+      <div className="mb-8 space-y-3">
+        {/* <h1 className="text-center text-4xl font-semibold sm:text-5xl">
+          Registration
+        </h1> */}
 
           <div className="mb-6 flex flex-wrap gap-3">
             <button type="button" onClick={() => { setMode('login'); setPendingOtp(null); setError(''); setMessage('') }} className={tabStyle('login')}>Login</button>
             <button type="button" onClick={() => { setMode('register'); setPendingOtp(null); setError(''); setMessage('') }} className={tabStyle('register')}>Register</button>
-            <button type="button" onClick={() => { setMode('forgot'); setPendingOtp(null); setError(''); setMessage('') }} className={tabStyle('forgot')}>Forgot Password</button>
+            {/* <button type="button" onClick={() => { setMode('forgot'); setPendingOtp(null); setError(''); setMessage('') }} className={tabStyle('forgot')}>Forgot Password</button> */}
           </div>
-
+          <div className="mb-8 space-y-3">
+            <h1 className="text-center text-4xl font-semibold sm:text-5xl">{mode === "register" ? "Registration": mode === "login"? "Login": "Forgot Password"}</h1>
+  </div>
           {message ? <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{message}</div> : null}
           {error ? <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div> : null}
 
@@ -270,11 +276,10 @@ function Register() {
                   <input name="phone" value={form.phone} onChange={updateField} required className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400" placeholder="+1234567890" />
                 </label>
               </div>
-
               {pendingOtp?.type === 'register' ? (
                 <>
                   <label className="block text-sm font-medium text-slate-300">
-                    <span className="mb-2 block">OTP</span>
+                    <span className="mb-2 block">Email OTP</span>
                     <input name="otp" value={form.otp} onChange={updateField} required className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400" placeholder="123456" />
                   </label>
                   <label className="block text-sm font-medium text-slate-300">
@@ -284,18 +289,26 @@ function Register() {
                   <div className="flex flex-wrap gap-3">
                     <button type="submit" disabled={loading} className="rounded-2xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Working...' : 'Complete Registration'}</button>
                     <button type="button" onClick={resendOtp} disabled={loading} className="rounded-2xl border border-slate-600 px-5 py-3 font-semibold text-slate-200 transition hover:border-indigo-400 hover:text-indigo-300 disabled:opacity-60">Resend OTP</button>
-                  </div>
+                  </div> 
                 </>
               ) : (
-                <button type="submit" disabled={loading} className="w-full rounded-2xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Working...' : 'Register & Send OTP'}</button>
+                <button type="submit" disabled={loading} className="w-full rounded-2xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Working...' : 'Register & Send OTP'}</button>  
               )}
+              <div className="mt-5 text-center">
+                <p className="text-sm text-slate-400">Already have an account?{" "}<span onClick={() => { setPendingOtp(null);
+                setMode("login");
+              }}
+              className="cursor-pointer font-semibold text-indigo-400 hover:underline">Login
+              </span>
+              </p>
+              </div>
             </form>
           ) : null}
 
           {mode === 'login' ? (
             <div className="space-y-6">
               <form onSubmit={loginWithPassword} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
-                <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Email + Password</div>
+                {/* <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Email + Password</div> */}
                 <label className="block text-sm font-medium text-slate-300">
                   <span className="mb-2 block">Email</span>
                   <input name="email" type="email" value={form.email} onChange={updateField} required className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400" placeholder="you@example.com" />
@@ -304,21 +317,28 @@ function Register() {
                   <span className="mb-2 block">Password</span>
                   <input name="password" type="password" value={form.password} onChange={updateField} required className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400" placeholder="Password123!" />
                 </label>
+
+
+                 <div className="mb-6 flex flex-wrap gap-3">
+            <button type="button" onClick={sendEmailOtp} disabled={loading} className={tabStyle('login')}>Email</button>
+            <button type="button" onClick={sendPhoneOtp} className={tabStyle('email')}>Phone</button>
+            {/* <button type="button" onClick={() => { }} className={tabStyle('register')}>phone</button> */}
+            {/* <button type="button" onClick={() => { setMode('forgot'); setPendingOtp(null); setError(''); setMessage('') }} className={tabStyle('forgot')}>Forgot Password</button> */}
+          </div>
                 <button type="submit" disabled={loading} className="w-full rounded-2xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? 'Working...' : 'Sign In'}</button>
               </form>
-
-              <div className="grid gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 md:grid-cols-2">
+              {/* <div className="grid gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4 md:grid-cols-2">
                 <div className="space-y-3">
-                  <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Email OTP</div>
+                  <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Email </div>
                   <input name="email" value={form.email} onChange={updateField} className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400" placeholder="you@example.com" />
                   <button type="button" onClick={sendEmailOtp} disabled={loading} className="w-full rounded-2xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-indigo-400 hover:text-indigo-300 disabled:opacity-60">Send Email OTP</button>
                 </div>
                 <div className="space-y-3">
-                  <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Phone OTP</div>
+                  <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Phone </div>
                   <input name="phone" value={form.phone} onChange={updateField} className="w-full rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400" placeholder="+1234567890" />
                   <button type="button" onClick={sendPhoneOtp} disabled={loading} className="w-full rounded-2xl border border-slate-700 px-5 py-3 font-semibold text-slate-200 transition hover:border-indigo-400 hover:text-indigo-300 disabled:opacity-60">Send Phone OTP</button>
                 </div>
-              </div>
+              </div> */}
 
               {pendingOtp?.type && pendingOtp.type !== 'register' ? (
                 <form onSubmit={verifyOtp} className="space-y-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
@@ -351,21 +371,24 @@ function Register() {
               ) : null}
 
               <button type="submit" disabled={loading} className="w-full rounded-2xl bg-indigo-500 px-5 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{pendingOtp?.type === 'forgot-password' ? (loading ? 'Working...' : 'Reset Password') : (loading ? 'Working...' : 'Send Reset OTP')}</button>
+
+              
+
+              <p className="mt-4 text-center text-sm text-slate-400"> Already have an account?{" "}<span onClick={() => { setPendingOtp(null);
+              setMode("login");
+            }}
+            className="cursor-pointer font-medium text-indigo-400 hover:underline">Login</span></p>
+              
             </form>
           ) : null}
         </div>
 
-        <div className="w-full rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl backdrop-blur-xl lg:w-[55%]">
-          <h2 className="text-2xl font-semibold">What is included</h2>
-          <ul className="mt-6 space-y-3 text-sm text-slate-300">
-            <li className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3">• User registration with OTP verification and secure password setup</li>
-            <li className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3">• Email/password authentication with JWT and refresh tokens</li>
-            <li className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3">• Email OTP login and phone OTP login</li>
-            <li className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3">• Forgot password, resend OTP, rate limiting, and validation</li>
-          </ul>
+        {/* <div className="w-full rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-2xl backdrop-blur-xl lg:w-[55%]"> */}
+          
+          
 
-          <div className="mt-8 rounded-3xl border border-indigo-500/30 bg-indigo-500/10 p-5">
-            <h3 className="text-lg font-semibold text-indigo-200">Session status</h3>
+          <div className="">
+           
             {user ? (
               <div className="mt-3 space-y-2 text-sm text-slate-300">
                 <p><span className="font-semibold text-white">Signed in as:</span> {user.email}</p>
@@ -373,15 +396,14 @@ function Register() {
                 <button type="button" onClick={logout} className="rounded-2xl border border-indigo-400/40 px-4 py-2 font-semibold text-indigo-200 transition hover:bg-indigo-500/20">Logout</button>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-slate-300">No active session. Use one of the auth flows to begin.</p>
+              <p className="mt-3 text-sm text-slate-300"></p>
             )}
           </div>
-        </div>
+        {/* </div> */}
+      </div>
       </div>
     </div>
   )
 }
-
-export default Register
 
 export default Register
